@@ -1,0 +1,74 @@
+/* tslint:disable */
+/* eslint-disable */
+
+export function address_from_pubkey_hex(pubkey_hex: string, prefix: string): string;
+
+export function build_hardened_path(coin_type: number, account_index: number): string;
+
+export function derive_address(phrase: string, passphrase: string, path: string, prefix: string): string;
+
+export function derive_ed25519_privkey_hex(phrase: string, passphrase: string, path: string): string;
+
+export function generate_mnemonic(word_count: number): string;
+
+export function init_panic_hook(): void;
+
+export function sign_message(phrase: string, passphrase: string, path: string, message: string, chainid: number): string;
+
+export function sign_transaction(phrase: string, passphrase: string, path: string, chainid: number, action: number, to_hex: string, nonce: bigint, amount_hex: string, power: bigint, power_limit: bigint, price_per_power_hex: string, tip_hex: string): string;
+
+export function tx_hash_hex(signed_tx_hex: string): string;
+
+export function validate_mnemonic(phrase: string): boolean;
+
+export function verify_message(message: string, chainid: number, proof_hex: string): boolean;
+
+export function verify_transaction(signed_tx_hex: string): boolean;
+
+export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
+
+export interface InitOutput {
+    readonly memory: WebAssembly.Memory;
+    readonly address_from_pubkey_hex: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly build_hardened_path: (a: number, b: number) => [number, number, number, number];
+    readonly derive_address: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number, number];
+    readonly derive_ed25519_privkey_hex: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
+    readonly generate_mnemonic: (a: number) => [number, number, number, number];
+    readonly init_panic_hook: () => void;
+    readonly sign_message: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number, number];
+    readonly sign_transaction: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: bigint, l: number, m: number, n: bigint, o: bigint, p: number, q: number, r: number, s: number) => [number, number, number, number];
+    readonly tx_hash_hex: (a: number, b: number) => [number, number, number, number];
+    readonly validate_mnemonic: (a: number, b: number) => number;
+    readonly verify_message: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
+    readonly verify_transaction: (a: number, b: number) => [number, number, number];
+    readonly __wbindgen_exn_store: (a: number) => void;
+    readonly __externref_table_alloc: () => number;
+    readonly __wbindgen_externrefs: WebAssembly.Table;
+    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_malloc: (a: number, b: number) => number;
+    readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+    readonly __externref_table_dealloc: (a: number) => void;
+    readonly __wbindgen_start: () => void;
+}
+
+export type SyncInitInput = BufferSource | WebAssembly.Module;
+
+/**
+ * Instantiates the given `module`, which can either be bytes or
+ * a precompiled `WebAssembly.Module`.
+ *
+ * @param {{ module: SyncInitInput }} module - Passing `SyncInitInput` directly is deprecated.
+ *
+ * @returns {InitOutput}
+ */
+export function initSync(module: { module: SyncInitInput } | SyncInitInput): InitOutput;
+
+/**
+ * If `module_or_path` is {RequestInfo} or {URL}, makes a request and
+ * for everything else, calls `WebAssembly.instantiate` directly.
+ *
+ * @param {{ module_or_path: InitInput | Promise<InitInput> }} module_or_path - Passing `InitInput` directly is deprecated.
+ *
+ * @returns {Promise<InitOutput>}
+ */
+export default function __wbg_init (module_or_path?: { module_or_path: InitInput | Promise<InitInput> } | InitInput | Promise<InitInput>): Promise<InitOutput>;
