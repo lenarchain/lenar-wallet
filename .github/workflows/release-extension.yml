@@ -1,0 +1,107 @@
+name: Release extension (zip)
+
+# Builds the Rust/WASM crypto module and packages a ready-to-install extension zip.
+#  - Manual run:   Actions tab -> "Release extension (zip)" -> Run workflow  (zip is an artifact)
+#  - Release:      git tag v0.1.0 && git push origin v0.1.0                  (zip is attached to a GitHub Release)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust (stable) + wasm32 target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo registry and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.toml') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      - name: Build WASM
+        run: cargo build --release --target wasm32-unknown-unknown
+
+      - name: Resolve wasm-bindgen version
+        id: wb
+        run: echo "version=$(cargo pkgid wasm-bindgen | cut -d@ -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache wasm-bindgen-cli
+        id: wb-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen
+          key: wasm-bindgen-cli-${{ steps.wb.outputs.version }}
+
+      - name: Install wasm-bindgen-cli (must match crate version)
+        if: steps.wb-cache.outputs.cache-hit != 'true'
+        run: cargo install wasm-bindgen-cli --version "${{ steps.wb.outputs.version }}" --locked
+
+      - name: Generate JS bindings (pkg/)
+        run: |
+          wasm-bindgen \
+            --target web \
+            --out-dir pkg \
+            --out-name libcrypto \
+            target/wasm32-unknown-unknown/release/libcrypto.wasm
+
+      - name: Assemble extension folder
+        run: |
+          mkdir -p dist/pkg
+          cp manifest.json background.js popup.html popup.js dist/
+          cp pkg/libcrypto.js pkg/libcrypto_bg.wasm dist/pkg/
+          cp -r icons fonts dist/
+          cp LICENSE-MIT LICENSE-APACHE dist/
+
+      - name: Verify required files
+        run: |
+          for f in manifest.json background.js popup.html popup.js \
+                   pkg/libcrypto.js pkg/libcrypto_bg.wasm \
+                   icons/icon16.png icons/icon32.png icons/icon48.png icons/icon128.png icons/logo.svg \
+                   fonts/figtree-latin-wght-normal.woff2; do
+            test -f "dist/$f" || { echo "Missing dist/$f"; exit 1; }
+          done
+
+      - name: Create zip (manifest.json at the zip root)
+        id: pack
+        run: |
+          VERSION=$(python3 -c "import json;print(json.load(open('manifest.json'))['version'])")
+          NAME="lenar-wallet-v${VERSION}.zip"
+          (cd dist && zip -r -9 "../${NAME}" .)
+          sha256sum "${NAME}" | tee "${NAME}.sha256"
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lenar-wallet
+          path: |
+            ${{ steps.pack.outputs.name }}
+            ${{ steps.pack.outputs.name }}.sha256
+
+      - name: Publish GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            "${{ steps.pack.outputs.name }}" \
+            "${{ steps.pack.outputs.name }}.sha256" \
+            --title "Lenar Wallet ${GITHUB_REF_NAME}" \
+            --generate-notes
